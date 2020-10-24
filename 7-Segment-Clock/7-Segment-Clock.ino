@@ -11,7 +11,7 @@
 #define MILLI_AMPS 2400 
 #define COUNTDOWN_OUTPUT D5
 
-#define WIFIMODE 2                            // 0 = Only Soft Access Point, 1 = Only connect to local WiFi network with UN/PW, 2 = Both
+#define WIFIMODE 2                            // 0 = Only Soft Access Point, 1 = Only connect to local WiFi network with SID/PW, 2 = Both
 
 #if defined(WIFIMODE) && (WIFIMODE == 0 || WIFIMODE == 2)
   const char* APssid = "CLOCK_AP";        
