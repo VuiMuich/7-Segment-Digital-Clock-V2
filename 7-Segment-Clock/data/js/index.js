@@ -86,7 +86,8 @@ function showClock() {
 }
 
 function setCountdownWarn() {
-    var countdownWarn = $('#countdownWarn').val();
+    var countdownWarn = $('#countdownWarn').is(":checked");
+    console.log(countdownWarn)
     $.post("/countdownWarn", countdownWarn);
 }
 
