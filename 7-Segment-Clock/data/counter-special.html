@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <script type="text/javascript" src="./js/moment-with-locales.js"></script>
     <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/switch.min.css">
     <link rel="stylesheet" href="css/jquery.minicolors.css">
     <title>7 Segment Clock</title>
 </head>
@@ -81,17 +80,15 @@
                                 <input type="text" id="inline" class="form-control demo" value="#00ff00">
                             </div>
                             <div>
+                                <button type="button" class="btn btn-primary" onclick="startCountup()">Start Countup
+                                    Timer</button>
+                            </div>
+                            <div>
                                 <button type="button" class="btn btn-primary" onclick="startCountdown()">Start Countdown
                                     Timer</button>
                             </div>
-
                             <div>
-                              <br />
-                               <label class="switch">
-                                 <input type="checkbox" id="countdownWarn" onclick="setCountdownWarn()" checked>
-                                 <span class="slider round"></span>
-                               </label>
-                               <label>Change color to red for time < 60s</label>
+                                <button type="button" class="btn btn-primary" onclick="Reset()">Reset Timer</button>
                             </div>
 
                             <div style="margin-top: 12px;">

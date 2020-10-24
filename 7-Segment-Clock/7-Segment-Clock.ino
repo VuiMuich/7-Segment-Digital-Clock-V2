@@ -38,11 +38,12 @@ bool dotsOn = true;
 byte brightness = 255;
 float temperatureCorrection = -3.0;
 byte temperatureSymbol = 12;                  // 12=Celcius, 13=Fahrenheit check 'numbers'
-byte clockMode = 0;                           // Clock modes: 0=Clock, 1=Countdown, 2=Temperature, 3=Scoreboard
+byte clockMode = 0;                           // Clock modes: 0=Clock, 1=Countdown, 2=Temperature, 3=Scoreboard 4=SpecialCounter
 unsigned long countdownMilliSeconds;
 unsigned long endCountDownMillis;
 byte hourFormat = 24;                         // Change this to 12 if you want default 12 hours format instead of 24               
 CRGB countdownColor = CRGB::Green;
+bool countdownWarn = true;
 byte scoreboardLeft = 0;
 byte scoreboardRight = 0;
 CRGB scoreboardColorLeft = CRGB::Green;
@@ -207,6 +208,11 @@ void setup() {
     clockMode = 0;     
     server.send(200, "text/json", "{\"result\":\"ok\"}");
   });  
+
+  server.on("/countdownWarn", HTTP_POST, []() {
+    countdownWarn = server.arg("countdownWarn").toBool();
+    server.send(200, "text/json", "{\"result\":\"ok\"}");
+  });
   
   // Before uploading the files with the "ESP8266 Sketch Data Upload" tool, zip the files with the command "gzip -r ./data/" (on Windows I do this with a Git Bash)
   // *.gz files are automatically unpacked and served from your ESP (so you don't need to create a handler for each file).
@@ -330,14 +336,14 @@ void updateCountdown() {
 
   if (countdownMilliSeconds == 0 && endCountDownMillis == 0) 
     return;
-    
+
   unsigned long restMillis = endCountDownMillis - millis();
   unsigned long hours   = ((restMillis / 1000) / 60) / 60;
   unsigned long minutes = (restMillis / 1000) / 60;
   unsigned long seconds = restMillis / 1000;
   int remSeconds = seconds - (minutes * 60);
   int remMinutes = minutes - (hours * 60); 
-  
+
   Serial.print(restMillis);
   Serial.print(" ");
   Serial.print(hours);
@@ -358,7 +364,7 @@ void updateCountdown() {
   byte s2 = remSeconds % 10;
 
   CRGB color = countdownColor;
-  if (restMillis <= 60000) {
+  if (restMillis <= 6000 && countdownWarn == true) {
     color = CRGB::Red;
   }
 
