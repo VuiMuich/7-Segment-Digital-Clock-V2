@@ -12,6 +12,7 @@
 #define COUNTDOWN_OUTPUT D5
 
 #define WIFIMODE 2                            // 0 = Only Soft Access Point, 1 = Only connect to local WiFi network with SID/PW, 2 = Both
+#define HOSTNAME "my-7-segment-clock"            // set the hostname to your liking
 
 #if defined(WIFIMODE) && (WIFIMODE == 0 || WIFIMODE == 2)
   const char* APssid = "CLOCK_AP";        
@@ -116,6 +117,7 @@ void setup() {
   // WiFi - Local network Mode or both
 #if defined(WIFIMODE) && (WIFIMODE == 1 || WIFIMODE == 2) 
   byte count = 0;
+  WiFi.hostname(HOSTNAME);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     // Stop if cannot connect
@@ -133,8 +135,11 @@ void setup() {
   Serial.print("Local IP: ");
   Serial.println(WiFi.localIP());
 
-  IPAddress ip = WiFi.localIP();
-  Serial.println(ip[3]);
+  Serial.print("Hostname: ");
+  Serial.println(WiFi.hostname());
+
+//  IPAddress ip = WiFi.localIP();
+//  Serial.println(ip[3]);
 #endif   
 
   httpUpdateServer.setup(&server);
