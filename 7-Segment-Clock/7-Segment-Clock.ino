@@ -11,8 +11,8 @@
 #define MILLI_AMPS 2400 
 #define COUNTDOWN_OUTPUT D5
 
-#define WIFIMODE 2                            // 0 = Only Soft Access Point, 1 = Only connect to local WiFi network with SID/PW, 2 = Both
-#define HOSTNAME "my-7-segment-clock"            // set the hostname to your liking
+#define WIFIMODE 1                            // 0 = Only Soft Access Point, 1 = Only connect to local WiFi network with SID/PW, 2 = Both
+#define HOSTNAME "my-7-segment-clock"         // set the hostname to your liking
 
 #if defined(WIFIMODE) && (WIFIMODE == 0 || WIFIMODE == 2)
   const char* APssid = "CLOCK_AP";        
@@ -23,6 +23,10 @@
   #include "Credentials.h"                    // Create this file in the same directory as the .ino file and add your credentials (#define SID YOURSSID and on the second line #define PW YOURPASSWORD)
   const char *ssid = SID;
   const char *password = PW;
+#endif
+
+#if defined(HOSTNAME)
+  const char *hostname = HOSTNAME;
 #endif
 
 RtcDS3231<TwoWire> Rtc(Wire);
@@ -117,7 +121,7 @@ void setup() {
   // WiFi - Local network Mode or both
 #if defined(WIFIMODE) && (WIFIMODE == 1 || WIFIMODE == 2) 
   byte count = 0;
-  WiFi.hostname(HOSTNAME);
+  WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     // Stop if cannot connect
