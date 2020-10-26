@@ -6,3 +6,4 @@ Credentials.h
 
 #FreeCAD
 *.FCStd1
+*.step
