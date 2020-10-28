@@ -46,6 +46,8 @@ byte temperatureSymbol = 12;                  // 12=Celcius, 13=Fahrenheit check
 byte clockMode = 0;                           // Clock modes: 0=Clock, 1=Countdown, 2=Temperature, 3=Scoreboard 4=SpecialCounter
 unsigned long countdownMilliSeconds;
 unsigned long endCountDownMillis;
+unsigned long countupMilliSeconds;
+unsigned long endCountUpMillis;
 byte hourFormat = 24;                         // Change this to 12 if you want default 12 hours format instead of 24               
 CRGB countdownColor = CRGB::Green;
 bool countdownWarn = true;
@@ -136,6 +138,9 @@ void setup() {
     FastLED.show();
     count++;
   }
+  Serial.println();
+  Serial.print("Connected to Network: ");
+  Serial.println(ssid);
   Serial.print("Local IP: ");
   Serial.println(WiFi.localIP());
 
@@ -188,6 +193,19 @@ void setup() {
     endCountDownMillis = millis() + countdownMilliSeconds;
     allBlank(); 
     clockMode = 1;     
+    server.send(200, "text/json", "{\"result\":\"ok\"}");
+  });
+
+  server.on("/countup", HTTP_POST, []() {    
+    countupMilliSeconds = server.arg("ms").toInt();     
+    byte cd_r_val = server.arg("r").toInt();
+    byte cd_g_val = server.arg("g").toInt();
+    byte cd_b_val = server.arg("b").toInt();
+    digitalWrite(COUNTDOWN_OUTPUT, LOW);
+    countdownColor = CRGB(cd_r_val, cd_g_val, cd_b_val); 
+    endCountUpMillis = millis() + countupMilliSeconds; // TODO: set starting condition properly
+    allBlank(); 
+    clockMode = 4;     
     server.send(200, "text/json", "{\"result\":\"ok\"}");
   });
 
@@ -257,6 +275,8 @@ void loop(){
       updateTemperature();      
     } else if (clockMode == 3) {
       updateScoreboard();            
+    } else if (clockMode == 4) {
+      updateCountup();            
     }
 
     FastLED.setBrightness(brightness);
@@ -412,6 +432,68 @@ void endCountdown() {
     LEDs[i] = CRGB::Red;
     FastLED.show();
     delay(25);
+  }  
+}
+
+void updateCountup() {
+
+  if (countdownMilliSeconds == 0 && endCountDownMillis == 0) 
+    return;
+
+  unsigned long restMillis = endCountDownMillis - millis();
+  unsigned long hours   = ((restMillis / 1000) / 60) / 60;
+  unsigned long minutes = (restMillis / 1000) / 60;
+  unsigned long seconds = restMillis / 1000;
+  int remSeconds = seconds - (minutes * 60);
+  int remMinutes = minutes - (hours * 60); 
+
+  Serial.print(restMillis);
+  Serial.print(" ");
+  Serial.print(hours);
+  Serial.print(" ");
+  Serial.print(minutes);
+  Serial.print(" ");
+  Serial.print(seconds);
+  Serial.print(" | ");
+  Serial.print(remMinutes);
+  Serial.print(" ");
+  Serial.println(remSeconds);
+
+  byte h1 = hours / 10;
+  byte h2 = hours % 10;
+  byte m1 = remMinutes / 10;
+  byte m2 = remMinutes % 10;  
+  byte s1 = remSeconds / 10;
+  byte s2 = remSeconds % 10;
+
+  CRGB color = countdownColor;
+  if (restMillis <= 6000 && countdownWarn == true) {
+    color = CRGB::Red;
+  }
+
+  if (hours > 0) {
+    // hh:mm
+    displayNumber(h1,3,color); 
+    displayNumber(h2,2,color);
+    displayNumber(m1,1,color);
+    displayNumber(m2,0,color);  
+  } else {
+    // mm:ss   
+    displayNumber(m1,3,color);
+    displayNumber(m2,2,color);
+    displayNumber(s1,1,color);
+    displayNumber(s2,0,color);  
+  }
+
+  displayDots(color);  
+
+  if (hours <= 0 && remMinutes <= 0 && remSeconds <= 0) {
+    Serial.println("Countdown timer ended.");
+    //endCountdown();
+    countdownMilliSeconds = 0;
+    endCountDownMillis = 0;
+    digitalWrite(COUNTDOWN_OUTPUT, HIGH);
+    return;
   }  
 }
 
