@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <script type="text/javascript" src="./js/moment-with-locales.js"></script>
     <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/switch.min.css">
     <link rel="stylesheet" href="css/jquery.minicolors.css">
     <title>7 Segment Clock</title>
 </head>
@@ -34,6 +35,9 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="./temperature.html">Temperature</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./counter-special.html">Spezial Counter for BSB</a>
                 </li>
         </div>
     </nav>
@@ -79,6 +83,15 @@
                             <div>
                                 <button type="button" class="btn btn-primary" onclick="startCountdown()">Start Countdown
                                     Timer</button>
+                            </div>
+
+                            <div>
+                              <br />
+                               <label class="switch">
+                                 <input type="checkbox" id="countdownWarn" onclick="setCountdownWarn()" checked>
+                                 <span class="slider round"></span>
+                               </label>
+                               <label>Change color to red for time < 60s</label>
                             </div>
 
                             <div style="margin-top: 12px;">

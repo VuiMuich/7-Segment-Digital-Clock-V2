@@ -11,7 +11,8 @@
 #define MILLI_AMPS 2400 
 #define COUNTDOWN_OUTPUT D5
 
-#define WIFIMODE 2                            // 0 = Only Soft Access Point, 1 = Only connect to local WiFi network with UN/PW, 2 = Both
+#define WIFIMODE 1                            // 0 = Only Soft Access Point, 1 = Only connect to local WiFi network with SID/PW, 2 = Both
+#define HOSTNAME "my-7-segment-clock"         // set the hostname to your liking
 
 #if defined(WIFIMODE) && (WIFIMODE == 0 || WIFIMODE == 2)
   const char* APssid = "CLOCK_AP";        
@@ -22,6 +23,10 @@
   #include "Credentials.h"                    // Create this file in the same directory as the .ino file and add your credentials (#define SID YOURSSID and on the second line #define PW YOURPASSWORD)
   const char *ssid = SID;
   const char *password = PW;
+#endif
+
+#if defined(HOSTNAME)
+  const char *hostname = HOSTNAME;
 #endif
 
 RtcDS3231<TwoWire> Rtc(Wire);
@@ -38,11 +43,14 @@ bool dotsOn = true;
 byte brightness = 255;
 float temperatureCorrection = -3.0;
 byte temperatureSymbol = 12;                  // 12=Celcius, 13=Fahrenheit check 'numbers'
-byte clockMode = 0;                           // Clock modes: 0=Clock, 1=Countdown, 2=Temperature, 3=Scoreboard
+byte clockMode = 0;                           // Clock modes: 0=Clock, 1=Countdown, 2=Temperature, 3=Scoreboard 4=SpecialCounter
 unsigned long countdownMilliSeconds;
 unsigned long endCountDownMillis;
+unsigned long countupMilliSeconds;
+unsigned long endCountUpMillis;
 byte hourFormat = 24;                         // Change this to 12 if you want default 12 hours format instead of 24               
 CRGB countdownColor = CRGB::Green;
+bool countdownWarn = true;
 byte scoreboardLeft = 0;
 byte scoreboardRight = 0;
 CRGB scoreboardColorLeft = CRGB::Green;
@@ -115,6 +123,7 @@ void setup() {
   // WiFi - Local network Mode or both
 #if defined(WIFIMODE) && (WIFIMODE == 1 || WIFIMODE == 2) 
   byte count = 0;
+  WiFi.hostname(hostname);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     // Stop if cannot connect
@@ -129,11 +138,17 @@ void setup() {
     FastLED.show();
     count++;
   }
+  Serial.println();
+  Serial.print("Connected to Network: ");
+  Serial.println(ssid);
   Serial.print("Local IP: ");
   Serial.println(WiFi.localIP());
 
-  IPAddress ip = WiFi.localIP();
-  Serial.println(ip[3]);
+  Serial.print("Hostname: ");
+  Serial.println(WiFi.hostname());
+
+//  IPAddress ip = WiFi.localIP();
+//  Serial.println(ip[3]);
 #endif   
 
   httpUpdateServer.setup(&server);
@@ -181,6 +196,19 @@ void setup() {
     server.send(200, "text/json", "{\"result\":\"ok\"}");
   });
 
+  server.on("/countup", HTTP_POST, []() {    
+    countupMilliSeconds = server.arg("ms").toInt();     
+    byte cd_r_val = server.arg("r").toInt();
+    byte cd_g_val = server.arg("g").toInt();
+    byte cd_b_val = server.arg("b").toInt();
+    digitalWrite(COUNTDOWN_OUTPUT, LOW);
+    countdownColor = CRGB(cd_r_val, cd_g_val, cd_b_val); 
+    endCountUpMillis = millis() + countupMilliSeconds; // TODO: set starting condition properly
+    allBlank(); 
+    clockMode = 4;     
+    server.send(200, "text/json", "{\"result\":\"ok\"}");
+  });
+
   server.on("/temperature", HTTP_POST, []() {   
     temperatureCorrection = server.arg("correction").toInt();
     temperatureSymbol = server.arg("symbol").toInt();
@@ -207,6 +235,11 @@ void setup() {
     clockMode = 0;     
     server.send(200, "text/json", "{\"result\":\"ok\"}");
   });  
+
+  server.on("/countdownWarn", HTTP_POST, []() {
+    countdownWarn = server.arg("countdownWarn");
+    server.send(200, "text/json", "{\"result\":\"ok\"}");
+  });
   
   // Before uploading the files with the "ESP8266 Sketch Data Upload" tool, zip the files with the command "gzip -r ./data/" (on Windows I do this with a Git Bash)
   // *.gz files are automatically unpacked and served from your ESP (so you don't need to create a handler for each file).
@@ -242,6 +275,8 @@ void loop(){
       updateTemperature();      
     } else if (clockMode == 3) {
       updateScoreboard();            
+    } else if (clockMode == 4) {
+      updateCountup();            
     }
 
     FastLED.setBrightness(brightness);
@@ -330,14 +365,14 @@ void updateCountdown() {
 
   if (countdownMilliSeconds == 0 && endCountDownMillis == 0) 
     return;
-    
+
   unsigned long restMillis = endCountDownMillis - millis();
   unsigned long hours   = ((restMillis / 1000) / 60) / 60;
   unsigned long minutes = (restMillis / 1000) / 60;
   unsigned long seconds = restMillis / 1000;
   int remSeconds = seconds - (minutes * 60);
   int remMinutes = minutes - (hours * 60); 
-  
+
   Serial.print(restMillis);
   Serial.print(" ");
   Serial.print(hours);
@@ -358,7 +393,7 @@ void updateCountdown() {
   byte s2 = remSeconds % 10;
 
   CRGB color = countdownColor;
-  if (restMillis <= 60000) {
+  if (restMillis <= 6000 && countdownWarn == true) {
     color = CRGB::Red;
   }
 
@@ -397,6 +432,68 @@ void endCountdown() {
     LEDs[i] = CRGB::Red;
     FastLED.show();
     delay(25);
+  }  
+}
+
+void updateCountup() {
+
+  if (countdownMilliSeconds == 0 && endCountDownMillis == 0) 
+    return;
+
+  unsigned long restMillis = endCountDownMillis - millis();
+  unsigned long hours   = ((restMillis / 1000) / 60) / 60;
+  unsigned long minutes = (restMillis / 1000) / 60;
+  unsigned long seconds = restMillis / 1000;
+  int remSeconds = seconds - (minutes * 60);
+  int remMinutes = minutes - (hours * 60); 
+
+  Serial.print(restMillis);
+  Serial.print(" ");
+  Serial.print(hours);
+  Serial.print(" ");
+  Serial.print(minutes);
+  Serial.print(" ");
+  Serial.print(seconds);
+  Serial.print(" | ");
+  Serial.print(remMinutes);
+  Serial.print(" ");
+  Serial.println(remSeconds);
+
+  byte h1 = hours / 10;
+  byte h2 = hours % 10;
+  byte m1 = remMinutes / 10;
+  byte m2 = remMinutes % 10;  
+  byte s1 = remSeconds / 10;
+  byte s2 = remSeconds % 10;
+
+  CRGB color = countdownColor;
+  if (restMillis <= 6000 && countdownWarn == true) {
+    color = CRGB::Red;
+  }
+
+  if (hours > 0) {
+    // hh:mm
+    displayNumber(h1,3,color); 
+    displayNumber(h2,2,color);
+    displayNumber(m1,1,color);
+    displayNumber(m2,0,color);  
+  } else {
+    // mm:ss   
+    displayNumber(m1,3,color);
+    displayNumber(m2,2,color);
+    displayNumber(s1,1,color);
+    displayNumber(s2,0,color);  
+  }
+
+  displayDots(color);  
+
+  if (hours <= 0 && remMinutes <= 0 && remSeconds <= 0) {
+    Serial.println("Countdown timer ended.");
+    //endCountdown();
+    countdownMilliSeconds = 0;
+    endCountDownMillis = 0;
+    digitalWrite(COUNTDOWN_OUTPUT, HIGH);
+    return;
   }  
 }
 

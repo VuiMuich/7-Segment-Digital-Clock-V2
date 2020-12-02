@@ -85,6 +85,12 @@ function showClock() {
     $.post("/clock");
 }
 
+function setCountdownWarn() {
+    var countdownWarn = $('#countdownWarn').is(":checked");
+    console.log(countdownWarn)
+    $.post("/countdownWarn", countdownWarn);
+}
+
 function showScoreboard() {
     var colorLeft = $('#scoreboardColorLeft').minicolors('rgbObject');
     var colorRight = $('#scoreboardColorRight').minicolors('rgbObject');
